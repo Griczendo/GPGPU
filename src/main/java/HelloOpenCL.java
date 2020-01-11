@@ -18,7 +18,7 @@ public class HelloOpenCL {
         // Initialize OpenCL and create a context and command queue
         CL.create();
 
-        CLPlatform platform = CLPlatform.getPlatforms().get(0);
+        CLPlatform platform = CLPlatform.getPlatforms().get(1);
         List<CLDevice> devices = platform.getDevices(CL_DEVICE_TYPE_GPU);
         CLContext context = CLContext.create(platform, devices, null, null, null);
         CLCommandQueue queue = clCreateCommandQueue(context, devices.get(0), CL_QUEUE_PROFILING_ENABLE, null);
@@ -28,27 +28,33 @@ public class HelloOpenCL {
         clEnqueueWriteBuffer(queue, aMem, 1, 0, aBuffer, null, null);
         CLMem bMem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, bBuffer, null);
         clEnqueueWriteBuffer(queue, bMem, 1, 0, bBuffer, null, null);
-        CLMem answerMem = clCreateBuffer(context, CL_MEM_WRITE_ONLY | CL_MEM_COPY_HOST_PTR, answerBuffer, null);
+        CLMem answerMem = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, answerBuffer, null);
         clFinish(queue);
 
         // Load the source from a resource file
-        String source = UtilCL.getResourceAsString("sort.txt");
+        String source = UtilCL.getResourceAsString("sum.txt");
 
         // Create our program and kernel
         CLProgram program = clCreateProgramWithSource(context, source, null);
         Util.checkCLError(clBuildProgram(program, devices.get(0), "", null));
         // sum has to match a kernel method name in the OpenCL source
         CLKernel kernel = clCreateKernel(program, "sum", null);
-
         // Execution our kernel
+
         PointerBuffer kernel1DGlobalWorkSize = BufferUtils.createPointerBuffer(1);
         kernel1DGlobalWorkSize.put(0, aBuffer.capacity());
         kernel.setArg(0, aMem);
-        kernel.setArg(1, bMem);
+        kernel.setArg(1, aMem);
         kernel.setArg(2, answerMem);
         clEnqueueNDRangeKernel(queue, kernel, 1, null, kernel1DGlobalWorkSize, null, null, null);
 
+        kernel.setArg(0, answerMem);
+        kernel.setArg(1, answerMem);
+        //kernel.setArg(2, answerMem);
+        clEnqueueNDRangeKernel(queue, kernel, 1, null, kernel1DGlobalWorkSize, null, null, null);
+
         // Read the results memory back into our result buffer
+
         clEnqueueReadBuffer(queue, answerMem, 1, 0, answerBuffer, null, null);
         clFinish(queue);
         // Print the result memory

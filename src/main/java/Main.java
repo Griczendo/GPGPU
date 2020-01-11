@@ -12,11 +12,10 @@ import java.util.Random;
 public class Main {
 
     public static void main(String[] args) throws IOException, LWJGLException {
-        CL.create();
-//        writeToFile("Concurrent:");
-//        concurrentResults();
-//        writeToFile("Sequential:");
-//        sequentialResults();
+        writeToFile("Concurrent:");
+        concurrentResults();
+        writeToFile("Sequential:");
+        sequentialResults();
         writeToFile("GPU:");
         gpuResults();
     }

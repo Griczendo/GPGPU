@@ -21,23 +21,14 @@ public class SortingAlgorithmPORR {
     public static int[] sortGPU(int[] data) {
         IntBuffer dataBuffer = BufferUtils.createIntBuffer(data.length).put(data);
         try {
-            CL.create();
-            int dataSize = data.length;
-            for(int i = 0; i < dataSize; i++) {
-                if(i % 2 == 0) {
-                    //ODD PHASE
-                    OpenCLUtil.sort(dataBuffer, new int[] {0}, new int[] {data.length});
-                } else {
-                    //EVEN PHASE
-                    OpenCLUtil.sort(dataBuffer, new int[] {1}, new int[] {data.length -1});
-                }
-            }
+            OpenCLUtil.sort(dataBuffer);
         } catch (LWJGLException e) {
             e.printStackTrace();
-        } finally {
-            CL.destroy();
-            return bufferToArray(dataBuffer);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
+        return bufferToArray(dataBuffer);
+
     }
 
     private static int[] bufferToArray(IntBuffer b) {

@@ -18,16 +18,22 @@ public class OpenCLUtil {
     /**
      *
      * @param dataBuffer
-     * @param start - inclusive
-     * @param end - exclusive
      */
-    public static IntBuffer sort(IntBuffer dataBuffer, final int[] start, final int[] end) throws LWJGLException, IOException {
+    public static IntBuffer sort(IntBuffer dataBuffer) throws LWJGLException, IOException {
+        int dataBufferCapacity = dataBuffer.capacity();
         dataBuffer.rewind();
-        IntBuffer startBuffer = BufferUtils.createIntBuffer(start.length).put(start);
-        startBuffer.rewind();
-        IntBuffer endBuffer = BufferUtils.createIntBuffer(end.length).put(end);
-        endBuffer.rewind();
 
+        IntBuffer startOddBuffer = BufferUtils.createIntBuffer(1).put(new int[] {0});
+        startOddBuffer.rewind();
+        IntBuffer endOddBuffer = BufferUtils.createIntBuffer(1).put(new int[] {dataBufferCapacity});
+        endOddBuffer.rewind();
+        IntBuffer startEvenBuffer = BufferUtils.createIntBuffer(1).put(new int[] {1});
+        startEvenBuffer.rewind();
+        IntBuffer endEvenBuffer = BufferUtils.createIntBuffer(1).put(new int[] {dataBufferCapacity - 1});
+        endEvenBuffer.rewind();
+
+
+        CL.create();
         CLPlatform platform = CLPlatform.getPlatforms().get(1);
         List<CLDevice> devices = platform.getDevices(CL_DEVICE_TYPE_GPU);
         CLContext context = CLContext.create(platform, devices, null, null, null);
@@ -37,11 +43,17 @@ public class OpenCLUtil {
         CLMem dataMem = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, dataBuffer, null);
         clEnqueueWriteBuffer(queue, dataMem, 1, 0, dataBuffer, null, null);
 
-        CLMem startMem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, startBuffer, null);
-        clEnqueueWriteBuffer(queue, startMem, 1, 0, startBuffer, null, null);
+        CLMem startOddMem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, startOddBuffer, null);
+        clEnqueueWriteBuffer(queue, startOddMem, 1, 0, startOddBuffer, null, null);
 
-        CLMem endMem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, endBuffer, null);
-        clEnqueueWriteBuffer(queue, endMem, 1, 0, endBuffer, null, null);
+        CLMem endOddMem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, endOddBuffer, null);
+        clEnqueueWriteBuffer(queue, endOddMem, 1, 0, endOddBuffer, null, null);
+
+        CLMem startEvenMem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, startEvenBuffer, null);
+        clEnqueueWriteBuffer(queue, startEvenMem, 1, 0, startEvenBuffer, null, null);
+
+        CLMem endEvenMem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, endEvenBuffer, null);
+        clEnqueueWriteBuffer(queue, endEvenMem, 1, 0, endEvenBuffer, null, null);
 
         clFinish(queue);
 
@@ -58,10 +70,17 @@ public class OpenCLUtil {
         PointerBuffer kernel1DGlobalWorkSize = BufferUtils.createPointerBuffer(1);
         kernel1DGlobalWorkSize.put(0, dataBuffer.capacity());
         kernel.setArg(0, dataMem);
-        kernel.setArg(1, startMem);
-        kernel.setArg(2, endMem);
-        clEnqueueNDRangeKernel(queue, kernel, 1, null, kernel1DGlobalWorkSize, null, null, null);
 
+
+        for(int i = 0; i < dataBufferCapacity; i++) {
+            if(i % 2 == 0) {
+                //ODD PHASE
+                executeKernel(kernel, queue, startOddMem, endOddMem, kernel1DGlobalWorkSize);
+            } else {
+                //EVEN PHASE
+                executeKernel(kernel, queue, startEvenMem, endEvenMem, kernel1DGlobalWorkSize);
+            }
+        }
         // Read the results memory back into our result buffer
         clEnqueueReadBuffer(queue, dataMem, 1, 0, dataBuffer, null, null);
         clFinish(queue);
@@ -72,11 +91,24 @@ public class OpenCLUtil {
             clReleaseKernel(kernel);
             clReleaseProgram(program);
             clReleaseMemObject(dataMem);
-            clReleaseMemObject(startMem);
-            clReleaseMemObject(endMem);
+            clReleaseMemObject(startEvenMem);
+            clReleaseMemObject(endOddMem);
             clReleaseCommandQueue(queue);
             clReleaseContext(context);
+            CL.destroy();
         }
+    }
+
+    private static void executeKernel(
+            CLKernel kernel,
+            CLCommandQueue queue,
+            CLMem startMem,
+            CLMem endMem,
+            PointerBuffer kernel1DGlobalWorkSize
+    ) {
+        kernel.setArg(1, startMem);
+        kernel.setArg(2, endMem);
+        clEnqueueNDRangeKernel(queue, kernel, 1, null, kernel1DGlobalWorkSize, null, null, null);
     }
 
     private static int[] bufferToArray(IntBuffer b) {
