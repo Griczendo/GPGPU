@@ -1,0 +1,22 @@
+kernel void sort(global int *data, global const int *start, global const int *end) {
+  unsigned int i = get_global_id(0);
+  if(start[0] == 0 && i % 2 == 0) {
+      if(i >= start[0] && i+1 <= end[0]) {
+          if(data[i] > data[i+1]) {
+            int temp = data[i+1];
+            data[i+1] = data[i];
+            data[i] = temp;
+          }
+      }
+  }
+
+  if(start[0] == 1 && i % 2 == 1) {
+    if(i >= start[0] && i+1 <= end[0]) {
+          if(data[i] > data[i+1]) {
+            int temp = data[i+1];
+            data[i+1] = data[i];
+            data[i] = temp;
+          }
+    }
+  }
+}
