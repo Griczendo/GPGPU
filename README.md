@@ -10,5 +10,5 @@ Make sure the target/natives directory exists! If it doesn't, run mvn package wh
 Make sure you set your java.library.path as given above. If you're using an IDE, you need to add it to your launch settings as described in the setup guides on this wiki. If you're launching from the command line, make sure you set MAVEN_OPTS as given in Step 4 (note that -Djava.library.path does not work as a normal vm argument in maven's exec:java goal, and you must use MAVEN_OPTS instead). 
 
 
-JUST ADD A MAVEN BUILD BEFORE CLASS RUN WITH COMMAND LINE:
+JUST ADD A MAVEN BUILD ("MAVEN GOAL") BEFORE CLASS RUN WITH COMMAND LINE:
 package (as 'mvn' is added by default probably in Intellij so you don't need it)
